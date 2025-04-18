@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>IP Calculator / IP Subnetting (Offline)</title>
+
+    <!-- My Style -->
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body onload="setFocus()">
+    <center>
+      <table cellpadding="15" cellspacing="50">
+        <tr>
+          <td bgcolor="#ffffff">
+            <div id="formfield">
+              <form onsubmit="calculate(); return false;" name="form" id="form">
+                <table border="0">
+                  <tr>
+                    <td><b>Address</b> (Host or Network)</td>
+                    <td><b>Netmask</b> (i.e. 24)</td>
+                  </tr>
+                  <tr>
+                    <td><input class="text" name="host" id="host" value="192.168.0.1" /> /</td>
+                    <td><input class="text" name="mask1" id="mask1" value="24" /></td>
+                  </tr>
+                  <tr>
+                    <td colspan="2">
+                      <input class="submit" type="submit" value="Calculate" />
+                    </td>
+                  </tr>
+                </table>
+              </form>
+            </div>
+
+            <pre id="result">
+No host given
+No netmask given (using default netmask of your network's class)
+          </pre
+            >
+            <hr />
+          </td>
+        </tr>
+      </table>
+    </center>
+
+    <script src="scripts/scripts.js"></script>
+  </body>
+</html>

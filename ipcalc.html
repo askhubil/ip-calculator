@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>IP Calculator / IP Subnetting (Offline)</title>
+    <style>
+      body {
+        background-color: white;
+        background-image: url("bg.gif");
+        color: black;
+        font-family: "Trebuchet MS", Verdana, Geneva, Helvetica, sans-serif;
+        line-height: 1.4em;
+        margin: 0;
+        padding: 0;
+      }
+
+      a {
+        text-decoration: none;
+        color: #003cd7;
+      }
+      a:visited {
+        color: #003cd7;
+      }
+      a:hover {
+        background-color: #dddddd;
+      }
+
+      h1 {
+        text-align: center;
+        margin-top: 30px;
+        margin-bottom: 20px;
+      }
+
+      table {
+        margin: auto;
+        border-spacing: 1px;
+      }
+
+      input.text {
+        border: 1px solid #000;
+        padding: 3px;
+      }
+
+      input:focus {
+        background-color: #e9edf5;
+      }
+
+      .submit {
+        margin-top: 10px;
+      }
+
+      #formfield {
+        border: 1px dotted black;
+        margin: 5px;
+        padding: 5px;
+      }
+
+      #result {
+        white-space: pre-wrap;
+        font-family: monospace;
+        background: #fff;
+        padding: 10px;
+        margin-top: 10px;
+        display: inline-block;
+        text-align: left;
+      }
+
+      center {
+        padding: 40px;
+      }
+    </style>
+  </head>
+  <body onload="setFocus()">
+    <center>
+      <table cellpadding="15" cellspacing="50">
+        <tr>
+          <td bgcolor="#ffffff">
+            <div id="formfield">
+              <form onsubmit="calculate(); return false;" name="form" id="form">
+                <table border="0">
+                  <tr>
+                    <td><b>Address</b> (Host or Network)</td>
+                    <td><b>Netmask</b> (i.e. 24)</td>
+                  </tr>
+                  <tr>
+                    <td><input class="text" name="host" id="host" value="192.168.0.1" /> /</td>
+                    <td><input class="text" name="mask1" id="mask1" value="24" /></td>
+                  </tr>
+                  <tr>
+                    <td colspan="2">
+                      <input class="submit" type="submit" value="Calculate" />
+                    </td>
+                  </tr>
+                </table>
+              </form>
+            </div>
+
+            <pre id="result">
+No host given
+No netmask given (using default netmask of your network's class)
+          </pre
+            >
+            <hr />
+          </td>
+        </tr>
+      </table>
+    </center>
+
+    <script>
+      function setFocus() {
+        document.form.host.focus();
+        document.form.host.select();
+      }
+
+      const ipToLong = (ip) => ip.split(".").reduce((acc, octet) => (acc << 8) + parseInt(octet), 0) >>> 0;
+
+      const longToIp = (long) => [24, 16, 8, 0].map((s) => (long >>> s) & 255).join(".");
+
+      const toBinary = (ip, maskBits) => {
+        const bin = ip
+          .split(".")
+          .map((o) => ("00000000" + parseInt(o).toString(2)).slice(-8))
+          .join("");
+
+        let spaced = "";
+        for (let i = 0; i < 32; i++) {
+          if (i > 0 && i % 8 === 0) spaced += ".";
+          if (i === maskBits) spaced += " ";
+          spaced += bin[i];
+        }
+        return spaced;
+      };
+
+      const pad = (s, len) => (s + " ".repeat(len)).slice(0, len);
+
+      const getClass = (ip) => {
+        const first = parseInt(ip.split(".")[0]);
+        if (first >= 0 && first <= 127) return "Class A";
+        if (first >= 128 && first <= 191) return "Class B";
+        if (first >= 192 && first <= 223) return "Class C";
+        if (first >= 224 && first <= 239) return "Class D (Multicast)";
+        if (first >= 240 && first <= 255) return "Class E (Reserved)";
+        return "Unknown";
+      };
+
+      function calculate() {
+        const ipStr = document.getElementById("host").value.trim();
+        const cidr = parseInt(document.getElementById("mask1").value.trim(), 10);
+        const output = document.getElementById("result");
+
+        if (!ipStr || isNaN(cidr) || cidr < 0 || cidr > 32) {
+          output.textContent = "Invalid IP address or CIDR netmask";
+          return;
+        }
+
+        const ip = ipToLong(ipStr);
+        const netmask = cidr === 0 ? 0 : (0xffffffff << (32 - cidr)) >>> 0;
+        const wildcard = ~netmask >>> 0;
+        const network = ip & netmask;
+        const broadcast = network | wildcard;
+        const hostMin = cidr >= 31 ? network : network + 1;
+        const hostMax = cidr >= 31 ? broadcast : broadcast - 1;
+        const hostCount = cidr === 31 ? 2 : cidr === 32 ? 1 : broadcast - network - 1;
+        const ipClass = getClass(longToIp(ip));
+
+        const binLine = (label, val, bin, color = "#0000ff") => `<font color="#000000">${pad(label + ":", 11)}</font><font color="${color}">${pad(val, 22)}</font><font color="#909090">${bin}</font>`;
+
+        const html = [
+          binLine("Address", longToIp(ip), toBinary(longToIp(ip), cidr)),
+          binLine("Netmask", longToIp(netmask) + " = " + cidr, toBinary(longToIp(netmask), cidr), "#ff0000"),
+          binLine("Wildcard", longToIp(wildcard), toBinary(longToIp(wildcard), cidr)),
+          binLine("Network", longToIp(network) + "/" + cidr, toBinary(longToIp(network), cidr)) + ` <font color="#000000">(${ipClass})</font>`,
+          binLine("Broadcast", longToIp(broadcast), toBinary(longToIp(broadcast), cidr)),
+          binLine("HostMin", longToIp(hostMin), toBinary(longToIp(hostMin), cidr)),
+          binLine("HostMax", longToIp(hostMax), toBinary(longToIp(hostMax), cidr)),
+          `<font color="#000000">Hosts/Net: </font><font color="#0000ff">${hostCount.toString().padEnd(21)}</font>`,
+        ].join("<br>");
+
+        output.innerHTML = html;
+      }
+    </script>
+  </body>
+</html>
